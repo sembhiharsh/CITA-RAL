@@ -13,6 +13,9 @@ from typing import List
 
 app = FastAPI(title="Auto Talleres Romo - Appointment API")
 
+from database import init_db, load_appointments, save_appointment, delete_appointment as db_delete
+init_db()
+
 def get_current_user(request: Request):
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Basic "):
@@ -116,23 +119,9 @@ class AppointmentModel(BaseModel):
 
 from utils.scheduling import _appointments_path
 
-def load_appointments() -> List[dict]:
-    path = _appointments_path()
-    if not os.path.exists(path):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump([], f)
-        return []
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-
 def save_appointments(appointments: List[dict]) -> None:
-    path = _appointments_path()
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(appointments, f, indent=2)
+    for a in appointments:
+        save_appointment(a)
 
 
 # ==========================================
@@ -285,12 +274,7 @@ async def update_appointment_status(appointment_id: str, payload: dict):
 @app.delete("/api/appointments/{appointment_id}")
 async def delete_appointment(appointment_id: str):
     """Deletes an appointment and broadcasts update."""
-    appointments = load_appointments()
-    initial_len = len(appointments)
-    appointments = [a for a in appointments if a["id"] != appointment_id]
-    if len(appointments) == initial_len:
-        raise HTTPException(status_code=404, detail="Appointment not found.")
-    save_appointments(appointments)
+    db_delete(appointment_id)
     # Broadcast update to admin UI
     await broadcast_appointment_update()
     return {"status": "success", "message": "Appointment deleted successfully."}
