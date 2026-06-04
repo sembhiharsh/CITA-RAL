@@ -1,0 +1,16 @@
+{
+  "provider": "local",
+  "api_key_openai": "",
+  "api_key_gemini": "",
+  "whisper_model": "base",
+  "ollama_url": "http://localhost:11434",
+  "whatsapp_number": "",
+  "shop_name": "Auto Talleres Romo",
+  "opening_hours": "Lunes a Viernes 08:30 - 18:30",
+  "manual_approval": false,
+  "default_quota": 1,
+  "custom_limits": {
+    "2026-06-04": 0,
+    "2026-06-05": 1
+  }
+}

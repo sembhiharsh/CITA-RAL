@@ -188,7 +188,7 @@ async def create_appointment(appointment: AppointmentModel):
 
     # Enforce business rules — slot must be valid (work hours, not weekend, not past)
     if not is_slot_available(appt_dt):
-        raise HTTPException(status_code=400, detail="Selected slot is unavailable.")
+        raise HTTPException(status_code=400, detail="La franja horaria seleccionada no está disponible.")
 
     # Check if the day is already full
     appt_date = appt_dt.date()
