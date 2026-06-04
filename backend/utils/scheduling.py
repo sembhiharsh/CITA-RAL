@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 from typing import List
+from utils.ai import load_settings
 
 # ==== CONFIGURATION ====
 BLOCK_WEEKENDS = True  # Block Saturday & Sunday if True
@@ -29,6 +30,13 @@ def is_slot_available(appt_dt: datetime.datetime) -> bool:
     """Return True if the datetime respects work hours, weekend rules and is in the future."""
     date = appt_dt.date()
     time = appt_dt.time()
+    
+    settings = load_settings()
+    custom_limits = settings.get("custom_limits", {})
+    
+    date_str = date.isoformat()
+    if date_str in custom_limits and custom_limits[date_str] <= 0:
+        return False
 
     # 1. Block appointments in the past
     if appt_dt < datetime.datetime.now():
@@ -75,8 +83,11 @@ def get_confirmed_count_for_date(target_date: datetime.date) -> int:
 
 
 def is_date_full(target_date: datetime.date) -> bool:
-    """Return True if target_date already has DAILY_QUOTA confirmed appointments."""
-    return get_confirmed_count_for_date(target_date) >= DAILY_QUOTA
+    """Return True if target_date already has quota of confirmed appointments."""
+    settings = load_settings()
+    custom_limits = settings.get("custom_limits", {})
+    quota = custom_limits.get(target_date.isoformat(), settings.get("default_quota", DAILY_QUOTA))
+    return get_confirmed_count_for_date(target_date) >= quota
 
 
 def get_next_available_date(start_date: datetime.date) -> str:
@@ -86,7 +97,7 @@ def get_next_available_date(start_date: datetime.date) -> str:
     for _ in range(100):
         # Use 10:00 AM as a dummy time inside the morning work shift
         dummy_dt = datetime.datetime.combine(current, datetime.time(10, 0))
-        if is_slot_available(dummy_dt) and get_confirmed_count_for_date(current) < DAILY_QUOTA:
+        if is_slot_available(dummy_dt) and not is_date_full(current):
             return current.isoformat()
         current += delta
     return start_date.isoformat()
@@ -99,7 +110,7 @@ def get_available_dates(start: datetime.date, end: datetime.date) -> List[str]:
     current = start
     while current <= end:
         dummy_dt = datetime.datetime.combine(current, datetime.time(12, 0))
-        if is_slot_available(dummy_dt) and get_confirmed_count_for_date(current) < DAILY_QUOTA:
+        if is_slot_available(dummy_dt) and not is_date_full(current):
             available.append(current.isoformat())
         current += delta
     return available
@@ -112,12 +123,19 @@ def auto_approve_pending(date: datetime.date) -> None:
             data = json.load(f)
     except Exception:
         return
+        
+    settings = load_settings()
+    if settings.get("manual_approval", False):
+        return  # Do not auto-approve if manual approval is required
+        
     confirmed = sum(
         1 for a in data
         if a.get('status') == 'confirmed' and datetime.datetime.fromisoformat(a.get('datetime')).date() == date
     )
     pending = [a for a in data if a.get('status') == 'pending' and datetime.datetime.fromisoformat(a.get('datetime')).date() == date]
-    slots = max(DAILY_QUOTA - confirmed, 0)
+    
+    quota = settings.get("custom_limits", {}).get(date.isoformat(), settings.get("default_quota", DAILY_QUOTA))
+    slots = max(quota - confirmed, 0)
     for a in pending[:slots]:
         a['status'] = 'confirmed'
     with open(path, 'w', encoding='utf-8') as f:

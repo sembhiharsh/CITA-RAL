@@ -104,6 +104,9 @@ class SettingsModel(BaseModel):
     whatsapp_number: Optional[str] = ""
     shop_name: Optional[str] = "Auto Talleres Romo"
     opening_hours: Optional[str] = "Lunes a Viernes 08:30 - 18:30"
+    manual_approval: Optional[bool] = False
+    default_quota: Optional[int] = 5
+    custom_limits: Optional[dict] = {}
 
 # ---------- Appointment schema ----------
 class AppointmentModel(BaseModel):
@@ -187,18 +190,21 @@ async def create_appointment(appointment: AppointmentModel):
     if not is_slot_available(appt_dt):
         raise HTTPException(status_code=400, detail="Selected slot is unavailable.")
 
-    # Check if the day is already full (5 confirmed appointments)
+    # Check if the day is already full
     appt_date = appt_dt.date()
     if is_date_full(appt_date):
         # Find the next available date and tell the user
         next_date = get_next_available_date(appt_date + datetime.timedelta(days=1))
         raise HTTPException(
             status_code=409,
-            detail=f"Este día ya está completo (máximo {DAILY_QUOTA} citas). El próximo día disponible es: {next_date}"
+            detail=f"Este día ya está completo. El próximo día disponible es: {next_date}"
         )
 
-    # Auto-confirm since we know quota is not exceeded
-    app_data["status"] = "confirmed"
+    settings = load_settings()
+    if settings.get("manual_approval", False):
+        app_data["status"] = "pending"
+    else:
+        app_data["status"] = "confirmed"
 
     # Save to local JSON DB
     appointments.append(app_data)

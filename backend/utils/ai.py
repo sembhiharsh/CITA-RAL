@@ -32,7 +32,10 @@ def load_settings() -> dict:
         "ollama_url": "http://localhost:11434",
         "whatsapp_number": "",
         "shop_name": "Auto Talleres Romo",
-        "opening_hours": "Lunes a Viernes 08:30 - 18:30"
+        "opening_hours": "Lunes a Viernes 08:30 - 18:30",
+        "manual_approval": False,
+        "default_quota": 5,
+        "custom_limits": {}
     }
 
 def save_settings(settings: dict) -> None:

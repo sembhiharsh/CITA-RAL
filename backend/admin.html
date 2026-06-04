@@ -394,6 +394,7 @@
     <button class="tab-btn" onclick="switchTab('pending')">📋 Pendientes</button>
     <button class="tab-btn active" onclick="switchTab('all')">📁 Todas las Citas</button>
     <button class="tab-btn" onclick="switchTab('calendar')">📅 Calendario</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ Configuración</button>
   </div>
 
   <!-- Section: Pending -->
@@ -419,7 +420,41 @@
       <span><div class="dot dot-blocked"></div> No disponible</span>
       <span><div class="dot dot-today"></div> Hoy</span>
     </div>
-</div>
+  </div>
+
+  <!-- Section: Settings -->
+  <div id="sec-settings" class="section">
+    <div class="card">
+      <div class="card-header"><h3>⚙️ Ajustes Generales</h3></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="set-manual" style="width:20px;height:20px;">
+        <label for="set-manual" style="margin:0;font-size:14px;color:var(--text);">Aprobación Manual (Las nuevas citas quedarán pendientes)</label>
+      </div>
+      <div class="form-group" style="margin-top:16px;">
+        <label>Límite por defecto (coches al día)</label>
+        <input type="number" id="set-quota" class="form-control" style="width:120px;" min="1" value="5">
+      </div>
+      <button class="btn btn-confirm" style="margin-top:10px;" onclick="saveGeneralSettings()">Guardar Ajustes</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>🚫 Bloqueos y Límites por Día</h3></div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:15px;">Selecciona una fecha para cambiar su límite de citas. Pon "0" para bloquear el día por completo.</p>
+      <div style="display:flex;gap:10px;margin-bottom:20px;align-items:flex-end;">
+        <div class="form-group" style="margin:0;">
+          <label>Fecha</label>
+          <input type="date" id="limit-date" class="form-control">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Límite</label>
+          <input type="number" id="limit-val" class="form-control" style="width:100px;" value="0" min="0">
+        </div>
+        <button class="btn btn-confirm" style="height:38px;" onclick="addCustomLimit()">Agregar</button>
+      </div>
+      
+      <div id="custom-limits-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
 
 <!-- Edit Modal -->
 <div id="edit-modal" class="modal">
@@ -461,15 +496,103 @@ const API = window.location.origin;
 let allAppointments = [];
 let calYear, calMonth;
 const notifLog = [];
+let currentSettings = {};
 
 // ---- Tab switching ----
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['pending','all','calendar'][i] === tab);
+    b.classList.toggle('active', ['pending','all','calendar','settings'][i] === tab);
   });
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + tab).classList.add('active');
   if (tab === 'calendar') renderCalendar();
+  if (tab === 'settings') loadSettings();
+}
+
+// ---- Settings Logic ----
+async function loadSettings() {
+  try {
+    const res = await fetch(API + '/api/settings');
+    currentSettings = await res.json();
+    if(currentSettings.custom_limits === undefined) currentSettings.custom_limits = {};
+    document.getElementById('set-manual').checked = currentSettings.manual_approval || false;
+    document.getElementById('set-quota').value = currentSettings.default_quota || 5;
+    renderCustomLimits();
+  } catch(e) { console.error(e); }
+}
+
+async function saveGeneralSettings() {
+  currentSettings.manual_approval = document.getElementById('set-manual').checked;
+  currentSettings.default_quota = parseInt(document.getElementById('set-quota').value);
+  await saveSettingsData();
+  alert('Ajustes guardados');
+}
+
+async function saveSettingsData() {
+  try {
+    await fetch(API + '/api/settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(currentSettings)
+    });
+  } catch(e) { console.error(e); }
+}
+
+function renderCustomLimits() {
+  const el = document.getElementById('custom-limits-list');
+  if(!currentSettings.custom_limits || Object.keys(currentSettings.custom_limits).length === 0) {
+    el.innerHTML = '<span style="font-size:13px;color:gray;">No hay límites personalizados activos.</span>';
+    return;
+  }
+  
+  let html = '';
+  // Sort dates
+  const dates = Object.keys(currentSettings.custom_limits).sort();
+  for(const d of dates) {
+    const limit = currentSettings.custom_limits[d];
+    const isBlocked = limit === 0;
+    
+    // Calculate current booked
+    let booked = 0;
+    allAppointments.forEach(a => {
+      if(a.status === 'confirmed' && a.datetime.startsWith(d)) booked++;
+    });
+    
+    html += `
+      <div style="background:var(--surface2);padding:10px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong style="color:var(--text);">${d}</strong> — 
+          <span style="color:${isBlocked ? 'var(--red)' : 'var(--cyan)'}">
+            ${isBlocked ? 'BLOQUEADO' : 'Límite: ' + limit + ' (Reservados: ' + booked + ')'}
+          </span>
+        </div>
+        <button class="btn btn-delete" style="padding:4px 10px;" onclick="removeCustomLimit('${d}')">✕</button>
+      </div>
+    `;
+  }
+  el.innerHTML = html;
+}
+
+async function addCustomLimit() {
+  const d = document.getElementById('limit-date').value;
+  const v = parseInt(document.getElementById('limit-val').value);
+  if(!d) return alert("Selecciona una fecha");
+  if(isNaN(v) || v < 0) return alert("Límite inválido");
+  
+  if(!currentSettings.custom_limits) currentSettings.custom_limits = {};
+  currentSettings.custom_limits[d] = v;
+  await saveSettingsData();
+  renderCustomLimits();
+  if (document.getElementById('sec-calendar').classList.contains('active')) renderCalendar();
+}
+
+async function removeCustomLimit(d) {
+  if(currentSettings.custom_limits && currentSettings.custom_limits[d] !== undefined) {
+    delete currentSettings.custom_limits[d];
+    await saveSettingsData();
+    renderCustomLimits();
+    if (document.getElementById('sec-calendar').classList.contains('active')) renderCalendar();
+  }
 }
 
 // ---- Load all data ----
