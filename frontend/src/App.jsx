@@ -95,9 +95,6 @@ function App() {
       const appt = data.appointment;
       const isAutoApproved = appt && appt.status === 'confirmed';
 
-      const formattedPhone = settings.whatsapp_number ? settings.whatsapp_number.replace(/\D/g, '') : '';
-      const cleanPhone = formattedPhone.startsWith('34') || formattedPhone.length > 9 ? formattedPhone : '34' + formattedPhone;
-
       let messageText = "";
       if (isAutoApproved) {
         messageText = `¡Hola! Acabo de registrar una cita y ha sido CONFIRMADA AUTOMÁTICAMENTE:\n👤 *Nombre*: ${clientForm.name}\n📞 *Teléfono*: ${clientForm.phone}\n🚗 *Coche*: ${clientForm.car_model}\n🔢 *Matrícula*: ${clientForm.license_plate}\n🛠️ *Servicio*: ${clientForm.service}\n📅 *Fecha/Hora*: ${clientForm.datetime.replace('T', ' ')}`;
@@ -105,8 +102,14 @@ function App() {
         messageText = `Hola, me gustaría solicitar una cita:\n👤 *Nombre*: ${clientForm.name}\n📞 *Teléfono*: ${clientForm.phone}\n🚗 *Coche*: ${clientForm.car_model}\n🔢 *Matrícula*: ${clientForm.license_plate}\n🛠️ *Servicio*: ${clientForm.service}\n📅 *Fecha/Hora propuesta*: ${clientForm.datetime.replace('T', ' ')}`;
       }
 
+      // Prepare WhatsApp number with fallback to default if settings not provided
+      const rawNumber = settings.whatsapp_number ? settings.whatsapp_number.replace(/\D/g, '') : '';
+      const cleanPhone = rawNumber
+        ? (rawNumber.startsWith('34') || rawNumber.length > 9 ? rawNumber : `34${rawNumber}`)
+        : '34600000000';
+
       const encodedMessage = encodeURIComponent(messageText);
-      const whatsappUrl = `https://wa.me/${cleanPhone || '34600000000'}?text=${encodedMessage}`;
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
       setClientFormSubmitted({ isAutoApproved, whatsappUrl });
     } catch (err) {

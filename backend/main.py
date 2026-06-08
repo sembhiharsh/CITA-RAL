@@ -13,6 +13,25 @@ from typing import List
 
 app = FastAPI(title="Auto Talleres Romo - Appointment API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' ws: wss:" 
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Strict-Transport-Security"] = "max-age=7776000"
+    response.headers["Cache-Control"] = "no-store, no-cache"
+    return response
+
 from database import init_db, load_appointments, save_appointment, delete_appointment as db_delete
 init_db()
 
@@ -101,7 +120,7 @@ class SettingsModel(BaseModel):
     api_key_gemini: Optional[str] = ""
     whisper_model: Optional[str] = "base"
     ollama_url: Optional[str] = "http://localhost:11434"
-    whatsapp_number: Optional[str] = ""
+    whatsapp_number: Optional[str] = "34934620254"
     shop_name: Optional[str] = "Auto Talleres Romo"
     opening_hours: Optional[str] = "Lunes a Viernes 08:30 - 18:30"
     manual_approval: Optional[bool] = False
