@@ -1,0 +1,18 @@
+:80 {
+    handle /api* {
+        reverse_proxy backend:8000
+    }
+    handle {
+        reverse_proxy frontend:5173
+    }
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Strict-Transport-Security "max-age=7776000"
+        Referrer-Policy no-referrer
+        Cache-Control no-store
+        -Server
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; form-action 'self'; base-uri 'self'"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+}

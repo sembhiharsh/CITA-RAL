@@ -642,10 +642,12 @@ function cardHTML(a, showActions) {
       <button class="btn btn-cancel" onclick="updateStatus('${a.id}','cancelled')">✕ Rechazar</button>
       <button class="btn btn-edit" onclick="openEditModal('${a.id}')">✏️ Editar</button>
       <button class="btn btn-whatsapp" onclick="sendWhatsApp('${a.id}')">💬 WhatsApp</button>
+      <button class="btn btn-email" style="background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;padding:8px;font-weight:600;" onclick="sendEmail('${a.id}')">📧 Email</button>
     </div>` : `
     <div class="card-actions">
       <button class="btn btn-edit" onclick="openEditModal('${a.id}')">✏️ Editar</button>
       <button class="btn btn-whatsapp" onclick="sendWhatsApp('${a.id}')">💬 WhatsApp</button>
+      <button class="btn btn-email" style="background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;padding:8px;font-weight:600;" onclick="sendEmail('${a.id}')">📧 Email</button>
     </div>`;
 
   const deleteBtn = `<button class="btn btn-delete" onclick="deleteAppt('${a.id}')">🗑</button>`;
@@ -657,6 +659,7 @@ function cardHTML(a, showActions) {
         ${a.status !== 'pending' ? deleteBtn : ''}
       </div>
       <div class="card-meta">
+        <div class="meta-item">📧 <strong>${a.email || '—'}</strong></div>
         <div class="meta-item">📞 <strong>${a.phone || '—'}</strong></div>
         <div class="meta-item">🚗 <strong>${a.car_model || '—'}</strong></div>
         <div class="meta-item">🔢 <strong>${a.license_plate || '—'}</strong></div>
@@ -872,7 +875,36 @@ function sendWhatsApp(id) {
   const encoded = encodeURIComponent(text);
   window.open(`https://wa.me/${cleanPhone.startsWith('34') || cleanPhone.length > 9 ? cleanPhone : '34' + cleanPhone}?text=${encoded}`, '_blank');
 }
-</script>
 
+function sendEmail(id) {
+  const a = allAppointments.find(item => item.id === id);
+  if (!a) return alert("Appointment not found");
+  
+  const email = a.email || '';
+  if (!email) {
+    alert("This appointment does not have an email address associated with it.");
+  }
+  
+  let msg = '';
+  if (a.status === 'confirmed') {
+    msg = `Hola ${a.name},\n\nSu cita para ${a.service} en Auto Talleres Romo ha sido CONFIRMADA.\n\n` +
+          `🚗 Coche: ${a.car_model}\n` +
+          `📅 Fecha y Hora: ${formatDT(a.datetime)}\n\n` +
+          `¡Le esperamos!`;
+  } else if (a.status === 'cancelled') {
+    msg = `Hola ${a.name},\n\nLamentablemente, su solicitud de cita en Auto Talleres Romo ha sido CANCELADA.\n\n` +
+          `Por favor, póngase en contacto con nosotros para buscar una alternativa.`;
+  } else {
+    msg = `Hola ${a.name},\n\nHemos recibido su solicitud de cita.\n\n` +
+          `🚗 Coche: ${a.car_model}\n` +
+          `📅 Fecha y Hora: ${formatDT(a.datetime)}\n\n` +
+          `Nos pondremos en contacto pronto para confirmar.`;
+  }
+
+  const subject = encodeURIComponent("Actualización de su Cita en Auto Talleres Romo");
+  const body = encodeURIComponent(msg);
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+}
+</script>
 </body>
 </html>

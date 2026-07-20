@@ -19,6 +19,7 @@ function App() {
   // Booking form state
   const [clientForm, setClientForm] = useState({
     name: '',
+    email: '',
     phone: '',
     car_model: '',
     license_plate: '',
@@ -191,6 +192,18 @@ function App() {
                 placeholder="Ej. Juan Pérez"
                 value={clientForm.name}
                 onChange={(e) => setClientForm(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-3 text-slate-900 text-sm focus:border-cyan-500 outline-none transition-colors"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <Send className="w-3.5 h-3.5 text-cyan-600" /> Correo Electrónico
+              </label>
+              <input
+                type="email"
+                placeholder="Ej. juan@correo.com"
+                value={clientForm.email}
+                onChange={(e) => setClientForm(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-3 text-slate-900 text-sm focus:border-cyan-500 outline-none transition-colors"
               />
             </div>
