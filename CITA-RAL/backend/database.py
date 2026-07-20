@@ -2,7 +2,10 @@ import os
 import json
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-APPOINTMENTS_FILE = "appointments.json"
+if os.path.exists("/data") and os.access("/data", os.W_OK):
+    APPOINTMENTS_FILE = "/data/appointments.json"
+else:
+    APPOINTMENTS_FILE = "appointments.json"
 
 def get_conn():
     if not DATABASE_URL:
