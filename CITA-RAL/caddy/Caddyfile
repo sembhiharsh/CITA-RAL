@@ -6,7 +6,7 @@
         reverse_proxy frontend:5173
     }
     header {
-        Content-Security-Policy "default-src 'self'" always
+        Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:" always
         X-Frame-Options "SAMEORIGIN" always
         X-Content-Type-Options "nosniff" always
         Strict-Transport-Security "max-age=7776000" always
