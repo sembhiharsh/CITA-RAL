@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, User, Phone, Calendar, Send, CheckCircle2, AlertTriangle, Settings, QrCode } from 'lucide-react';
+import { Wrench, User, Phone, Calendar, Send, CheckCircle2, AlertTriangle, Settings, QrCode, Copy, Check, X, ExternalLink, CreditCard } from 'lucide-react';
+import QRCodeLib from 'qrcode';
+
+const COMPANY_NAME = 'AUTO TALLERS ROMO S.A';
+const BANK_NAME = 'CaixaBank, S.A.';
+const IBAN_DISPLAY = 'ES22 2100 3223 7322 0008 3544';
+
+// 100% self-hosted on our own site - zero third-party dependencies
+const getPayPageUrl = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/pago`;
+  }
+  return 'https://romoautohub.es/pago';
+};
 
 const getBackendUrl = () => {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -30,6 +43,51 @@ function App() {
   const [clientFormLoading, setClientFormLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [suggestedDate, setSuggestedDate] = useState(null);
+
+  // Payment QR modal state & copy feedback
+  const payUrl = getPayPageUrl();
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
+  const [showPayment, setShowPayment] = useState(() => {
+    return typeof window !== 'undefined' && (
+      window.location.pathname.includes('/pago') || 
+      window.location.pathname.includes('/pay') || 
+      window.location.search.includes('pay') ||
+      window.location.hash.includes('pago')
+    );
+  });
+  const [copiedField, setCopiedField] = useState(null);
+
+  useEffect(() => {
+    QRCodeLib.toDataURL(payUrl, {
+      width: 450,
+      margin: 2,
+      errorCorrectionLevel: 'Q',
+      color: { dark: '#0a0f1d', light: '#ffffff' }
+    }).then(setQrDataUrl).catch(console.error);
+  }, [payUrl]);
+
+  const handleCopy = async (text, fieldName) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2500);
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+    }
+  };
 
   // Load settings on mount
   useEffect(() => {
@@ -131,8 +189,16 @@ function App() {
 
       {/* Navbar */}
       <nav className="relative z-10 w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto border-b border-slate-300/50">
-        <a href="https://romoautohub.es" className="text-2xl font-bold tracking-widest text-slate-900 decoration-none">AUTO TALLERES ROMO</a>
-        <div className="flex gap-4">
+        <a href="https://romoautohub.es" className="text-xl sm:text-2xl font-bold tracking-widest text-slate-900 decoration-none">AUTO TALLERES ROMO</a>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowPayment(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 font-bold text-xs sm:text-sm rounded-xl border border-emerald-500/30 transition shadow-sm cursor-pointer"
+          >
+            <QrCode className="w-4 h-4 text-emerald-600" />
+            <span>Pagar con QR</span>
+          </button>
           <a href="https://romoautohub.es" className="text-sm font-semibold hover:text-cyan-600 transition text-slate-600">Volver a Inicio</a>
         </div>
       </nav>
@@ -162,6 +228,17 @@ function App() {
                 ? 'Su cita ha sido aprobada al instante.'
                 : 'Usted recibirá un mensaje de WhatsApp o SMS con la confirmación de la hora y el día de su cita.'}
             </p>
+            <div className="pt-4 border-t border-slate-200 text-left">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pago por Transferencia</p>
+              <button
+                type="button"
+                onClick={() => setShowPayment(true)}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <QrCode className="w-5 h-5" />
+                <span>Ver Código QR y Datos de Pago</span>
+              </button>
+            </div>
           </div>
         ) : (
           <form className="mt-8 space-y-5 text-left" onSubmit={handleClientSubmit}>
@@ -288,6 +365,114 @@ function App() {
         </div>
       </div>
       </div>
+
+      {/* Payment QR Modal */}
+      {showPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 relative text-left max-h-[92vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowPayment(false)}
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition cursor-pointer"
+              aria-label="Cerrar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-5">
+              <div className="inline-flex p-2.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-600 mb-2">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Pago por Transferencia</h3>
+              <p className="text-xs text-slate-500 mt-1">Escanee el código QR con su móvil o copie los datos bancarios.</p>
+            </div>
+
+            {/* QR Code Container */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center mb-5">
+              <div className="bg-white p-3 rounded-xl inline-block shadow-sm border border-slate-200">
+                <img
+                  src={qrDataUrl || "/qr_payment.png"}
+                  alt="QR Pago Auto Talleres Romo"
+                  className="w-44 h-44 mx-auto block"
+                />
+              </div>
+              <p className="text-[11px] font-semibold text-slate-500 mt-2">
+                Apunta la cámara del móvil al QR para abrir nuestra página de pago
+              </p>
+              <a
+                href={payUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-600 hover:text-cyan-700 mt-1.5 break-all text-center"
+              >
+                <span>{payUrl}</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            </div>
+
+            {/* Copyable Details */}
+            <div className="space-y-3">
+              {/* IBAN */}
+              <div className="p-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl transition">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">IBAN (Cuenta Bancaria)</span>
+                    <span className="font-mono font-bold text-sm sm:text-base text-slate-900">{IBAN_DISPLAY}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(IBAN_DISPLAY, 'iban')}
+                    className="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    {copiedField === 'iban' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedField === 'iban' ? '¡Copiado!' : 'Copiar'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Titular */}
+              <div className="p-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl transition">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Titular / Empresa</span>
+                    <span className="font-semibold text-sm text-slate-900">{COMPANY_NAME}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(COMPANY_NAME, 'name')}
+                    className="shrink-0 px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    {copiedField === 'name' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedField === 'name' ? '¡Copiado!' : 'Copiar'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Extra Bank Info */}
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-1">
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Banco</span>
+                  <span className="font-semibold">{BANK_NAME}</span>
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">BIC / SWIFT</span>
+                  <span className="font-semibold font-mono">CAIXESBBXXX</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 text-center">
+              <button
+                type="button"
+                onClick={() => setShowPayment(false)}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -344,6 +344,15 @@ def admin_page():
     return FileResponse(admin_path, media_type="text/html")
 
 
+@app.get("/qr_payment.png")
+def get_qr_image():
+    """Serve the payment QR code image."""
+    qr_path = os.path.join(BASE_DIR, "qr_payment.png")
+    if os.path.exists(qr_path):
+        return FileResponse(qr_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="QR code not found")
+
+
 # ---------- Frontend static files ----------
 
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend", "dist")

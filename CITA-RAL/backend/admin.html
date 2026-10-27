@@ -394,7 +394,50 @@
     <button class="tab-btn" onclick="switchTab('pending')">📋 Pendientes</button>
     <button class="tab-btn active" onclick="switchTab('all')">📁 Todas las Citas</button>
     <button class="tab-btn" onclick="switchTab('calendar')">📅 Calendario</button>
+    <button class="tab-btn" onclick="switchTab('payment')">💳 Pago & QR</button>
     <button class="tab-btn" onclick="switchTab('settings')">⚙️ Configuración</button>
+  </div>
+
+  <!-- Section: Payment & QR -->
+  <div id="sec-payment" class="section">
+    <div class="card" style="text-align:center;max-width:550px;margin:0 auto 20px auto;">
+      <div class="card-header" style="justify-content:center;">
+        <h3>💳 Cobro por Transferencia Bancaria (QR)</h3>
+      </div>
+      <p style="font-size:.85rem;color:var(--text-dim);margin-bottom:18px;">
+        Muestra este código al cliente en el mostrador para que lo escanee con su móvil y copie la cuenta bancaria.
+      </p>
+
+      <div style="background:white;padding:16px;border-radius:18px;display:inline-block;margin-bottom:18px;box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+        <img src="/qr_payment.png" alt="QR Cobro" style="width:220px;height:220px;display:block;">
+      </div>
+
+      <div style="text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <div style="font-size:.7rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;">IBAN CaixaBank</div>
+            <div style="font-family:monospace;font-size:1.05rem;font-weight:700;color:var(--cyan);">ES22 2100 3223 7322 0008 3544</div>
+          </div>
+          <button class="btn btn-confirm" onclick="navigator.clipboard.writeText('ES22 2100 3223 7322 0008 3544').then(()=>alert('¡IBAN copiado!'))">Copiar</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:.7rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;">Titular / Empresa</div>
+            <div style="font-size:.9rem;font-weight:600;color:var(--text);">AUTO TALLERS ROMO S.A</div>
+          </div>
+          <button class="btn btn-confirm" onclick="navigator.clipboard.writeText('AUTO TALLERS ROMO S.A').then(()=>alert('¡Titular copiado!'))">Copiar</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <a href="https://scanpay.ai/pay?_hash=zwa7XOFRwSZhMlTGJO6jGgqpbwr5aLowevd85jbc2-U&iban=ES22+2100+3223+7322+0008+3544&locale=en&name=AUTO+TALLERS+ROMO+S.A&v=002" target="_blank" class="btn btn-confirm" style="text-decoration:none;">
+          Abrir Enlace Web
+        </a>
+        <button class="btn btn-confirm" style="background:var(--cyan-dim);color:var(--cyan);" onclick="window.print()">
+          🖨️ Imprimir Cartel
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Section: Pending -->
@@ -501,7 +544,7 @@ let currentSettings = {};
 // ---- Tab switching ----
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['pending','all','calendar','settings'][i] === tab);
+    b.classList.toggle('active', ['pending','all','calendar','payment','settings'][i] === tab);
   });
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + tab).classList.add('active');

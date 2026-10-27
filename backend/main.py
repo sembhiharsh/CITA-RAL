@@ -25,7 +25,7 @@ app.add_middleware(
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
-    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' ws: wss:" 
+    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:" 
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Strict-Transport-Security"] = "max-age=7776000"
@@ -131,6 +131,7 @@ class SettingsModel(BaseModel):
 class AppointmentModel(BaseModel):
     id: Optional[str] = None
     name: str
+    email: Optional[str] = None
     phone: str
     car_model: str
     license_plate: str
@@ -341,6 +342,15 @@ def admin_page():
     if not os.path.exists(admin_path):
         raise HTTPException(status_code=404, detail="Admin page not found.")
     return FileResponse(admin_path, media_type="text/html")
+
+
+@app.get("/qr_payment.png")
+def get_qr_image():
+    """Serve the payment QR code image."""
+    qr_path = os.path.join(BASE_DIR, "qr_payment.png")
+    if os.path.exists(qr_path):
+        return FileResponse(qr_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="QR code not found")
 
 
 # ---------- Frontend static files ----------
